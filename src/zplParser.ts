@@ -67,7 +67,10 @@ export function parseZpl(zpl: string): ZplElement[] {
         break;
       }
       case 'PW': {
-        // Label width, can be used by layout if needed
+        const width = parseInt(rest || '0', 10);
+        if (!Number.isNaN(width) && width > 0) {
+          // Store in state for potential future use
+        }
         break;
       }
       case 'FO': {
@@ -229,6 +232,43 @@ export function parseZpl(zpl: string): ZplElement[] {
   }
 
   return elements;
+}
+
+/**
+ * 解析 ZPL 指令中的标签尺寸信息
+ * @param zpl ZPL 指令字符串
+ * @returns 标签的宽度和高度（单位：dots）
+ */
+export function parseZplDimensions(zpl: string): { width: number; height: number } {
+  // 解析 ^PW 获取宽度
+  const pwMatch = zpl.match(/\^PW(\d+)/);
+  const width = pwMatch ? parseInt(pwMatch[1], 10) : 0;
+  
+  // 解析所有元素，找出最大坐标来确定高度
+  const elements = parseZpl(zpl);
+  let maxX = 0;
+  let maxY = 0;
+  
+  for (const el of elements) {
+    // 计算元素的最大 x 坐标
+    const elementMaxX = el.x + ((el as any).width || 0);
+    if (elementMaxX > maxX) {
+      maxX = elementMaxX;
+    }
+    
+    // 计算元素的最大 y 坐标
+    const elementMaxY = el.y + ((el as any).height || 0);
+    if (elementMaxY > maxY) {
+      maxY = elementMaxY;
+    }
+  }
+  
+  // 如果从 ^PW 解析到了宽度，使用它；否则使用元素的最大 x 坐标
+  const finalWidth = width > 0 ? width : maxX || 596;
+  // 高度使用元素的最大 y 坐标，如果没有则使用默认值
+  const finalHeight = maxY || 900;
+  
+  return { width: finalWidth, height: finalHeight };
 }
 
 

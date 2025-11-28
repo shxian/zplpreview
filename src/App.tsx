@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './App.css';
-import { ZplPreview } from './ZplPreview';
+import { ZplPreview, type DimensionUnit } from './ZplPreview';
+import { parseZplDimensions } from './zplParser';
 
 const SAMPLE_ZPL = `^XA
 ^MMT
@@ -51,6 +52,66 @@ const SAMPLE_ZPL = `^XA
 
 function App() {
   const [zpl, setZpl] = useState(SAMPLE_ZPL);
+  const [unit, setUnit] = useState<DimensionUnit>('mm');
+  const [width, setWidth] = useState<number | undefined>(76);
+  const [height, setHeight] = useState<number | undefined>(130);
+  const [scale, setScale] = useState(0.9);
+
+  // 当 ZPL 改变时，尝试从 ZPL 中提取尺寸
+  const handleZplChange = (newZpl: string) => {
+    setZpl(newZpl);
+    try {
+      const dims = parseZplDimensions(newZpl);
+      // 将 dots 转换为当前单位
+      const dotsToCurrentUnit = (dots: number) => {
+        switch (unit) {
+          case 'mm': return dots / 8;
+          case 'cm': return dots / 80;
+          case 'inches': return dots / 203;
+          case 'dots': return dots;
+        }
+      };
+      // 只有当解析到的尺寸合理时才更新
+      if (dims.width > 0 && dims.height > 0) {
+        setWidth(dotsToCurrentUnit(dims.width));
+        setHeight(dotsToCurrentUnit(dims.height));
+      }
+    } catch {
+      // 如果解析失败，保持当前值
+    }
+  };
+
+  // 当单位改变时，转换当前尺寸值
+  const handleUnitChange = (newUnit: DimensionUnit) => {
+    if (width === undefined || height === undefined) {
+      setUnit(newUnit);
+      return;
+    }
+
+    // 先将当前值转换为 dots
+    const currentToDots = (val: number) => {
+      switch (unit) {
+        case 'mm': return val * 8;
+        case 'cm': return val * 80;
+        case 'inches': return val * 203;
+        case 'dots': return val;
+      }
+    };
+
+    // 再将 dots 转换为新单位
+    const dotsToNew = (dots: number) => {
+      switch (newUnit) {
+        case 'mm': return dots / 8;
+        case 'cm': return dots / 80;
+        case 'inches': return dots / 203;
+        case 'dots': return dots;
+      }
+    };
+
+    setWidth(dotsToNew(currentToDots(width)));
+    setHeight(dotsToNew(currentToDots(height)));
+    setUnit(newUnit);
+  };
 
   return (
     <div className="app-root">
@@ -62,13 +123,62 @@ function App() {
           <h2>ZPL 指令</h2>
           <textarea
             value={zpl}
-            onChange={(e) => setZpl(e.target.value)}
+            onChange={(e) => handleZplChange(e.target.value)}
             spellCheck={false}
           />
         </section>
         <section className="preview-section">
           <h2>预览</h2>
-          <ZplPreview zpl={zpl} width={596} scale={0.9} />
+          <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              单位:
+              <select 
+                value={unit} 
+                onChange={(e) => handleUnitChange(e.target.value as DimensionUnit)}
+                style={{ padding: '4px 8px' }}
+              >
+                <option value="mm">mm</option>
+                <option value="cm">cm</option>
+                <option value="inches">inches</option>
+                <option value="dots">dots</option>
+              </select>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              宽度:
+              <input
+                type="number"
+                value={width ?? ''}
+                onChange={(e) => setWidth(e.target.value ? parseFloat(e.target.value) : undefined)}
+                style={{ width: '80px', padding: '4px 8px' }}
+                step={unit === 'dots' ? 1 : 0.1}
+                min="0"
+              />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              高度:
+              <input
+                type="number"
+                value={height ?? ''}
+                onChange={(e) => setHeight(e.target.value ? parseFloat(e.target.value) : undefined)}
+                style={{ width: '80px', padding: '4px 8px' }}
+                step={unit === 'dots' ? 1 : 0.1}
+                min="0"
+              />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              缩放:
+              <input
+                type="number"
+                value={scale}
+                onChange={(e) => setScale(parseFloat(e.target.value))}
+                style={{ width: '60px', padding: '4px 8px' }}
+                min="0.1"
+                max="2"
+                step="0.1"
+              />
+            </label>
+          </div>
+          <ZplPreview zpl={zpl} width={width} height={height} unit={unit} scale={scale} />
         </section>
       </main>
     </div>
