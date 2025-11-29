@@ -55,10 +55,6 @@ type DensityDpi = 203 | 300;
 
 type PreviewPayload = {
   zpl: string;
-  density: DensityDpi;
-  unit: DimensionUnit;
-  width?: number;
-  height?: number;
 };
 
 function dotsToUnit(dots: number, unit: DimensionUnit, dpi: DensityDpi): number {
@@ -103,10 +99,6 @@ function App() {
   const [height, setHeight] = useState<number | undefined>(130);
   const [preview, setPreview] = useState<PreviewPayload>({
     zpl: SAMPLE_ZPL,
-    density: 203,
-    unit: 'mm',
-    width: 76,
-    height: 130,
   });
 
   // 当 ZPL 改变时，尝试从 ZPL 中提取尺寸，并转换为当前单位
@@ -148,13 +140,7 @@ function App() {
   };
 
   const handleRenderClick = () => {
-    setPreview({
-      zpl,
-      density,
-      unit,
-      width,
-      height,
-    });
+    setPreview({ zpl });
   };
 
   return (
@@ -235,10 +221,10 @@ function App() {
           <h2>预览</h2>
           <ZplPreview
             zpl={preview.zpl}
-            width={preview.width}
-            height={preview.height}
-            unit={preview.unit}
-            dpi={preview.density}
+            width={width}
+            height={height}
+            unit={unit}
+            dpi={density}
           />
         </section>
       </main>

@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { parseZpl, parseZplDimensions } from './zplParser';
 import { renderZplToCanvas } from './canvasRenderer';
-import type { ZplElement } from './zplTypes';
-import QRCodeGenerator from 'qrcode-generator';
 
 export type DimensionUnit = 'mm' | 'cm' | 'inches' | 'dots';
 
@@ -95,85 +93,50 @@ export function ZplPreview({
 
     const elements = parseZpl(zpl);
 
-    // 计算内容包围盒，让内容在标签区域内居中
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = 0;
-    let maxY = 0;
+    // 从 ZPL 中获取打印宽度（^PW 指定的内容宽度）
+    const zplDims = parseZplDimensions(zpl);
+    const pwWidth = zplDims.width;
 
-    const updateBounds = (el: ZplElement, w: number, h: number) => {
-      const ex1 = el.x;
-      const ey1 = el.y;
-      const ex2 = el.x + w;
-      const ey2 = el.y + h;
-      if (ex1 < minX) minX = ex1;
-      if (ey1 < minY) minY = ey1;
-      if (ex2 > maxX) maxX = ex2;
-      if (ey2 > maxY) maxY = ey2;
-    };
+    // 计算内容的实际边界（主要关注边框线 ^GB 元素来确定可视区域）
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = 0;
 
     for (const el of elements) {
-      switch (el.type) {
-        case 'box': {
-          const w = (el as any).width || 0;
-          const h = (el as any).height || 0;
-          updateBounds(el, w, h);
-          break;
+      // 边框线是最可靠的边界指示器
+      if (el.type === 'box') {
+        const box = el as { x: number; width: number; height: number };
+        // 竖线（width=0）用于确定左右边界
+        if (box.width === 0 && box.height > 0) {
+          if (el.x < minX) minX = el.x;
+          if (el.x > maxX) maxX = el.x + 1; // 线宽至少 1
         }
-        case 'image': {
-          const w = (el as any).width || 0;
-          const h = (el as any).height || 0;
-          updateBounds(el, w, h);
-          break;
+        // 横线或矩形也考虑
+        if (box.width > 0) {
+          if (el.x < minX) minX = el.x;
+          if (el.x + box.width > maxX) maxX = el.x + box.width;
         }
-        case 'barcode': {
-          const b = el as any;
-          const w = (b.moduleWidth || 2) * 16 + (b.content?.length || 0) * (b.moduleWidth || 2) * 8;
-          const h = b.height || 80;
-          updateBounds(el, w, h);
-          break;
-        }
-        case 'qrcode': {
-          const q = el as any;
-          const dotSize = q.dotSize && q.dotSize > 0 ? q.dotSize : 4;
-          // 严格按照 ZPL 指令计算二维码大小，使用真实的模块数
-          // 二维码大小 = 模块数 × magnification (dotSize)
-          // 生成二维码对象以获取真实的模块数，确保边界计算准确
-          const qr = QRCodeGenerator(0, 'L');
-          qr.addData(q.content);
-          qr.make();
-          const moduleCount = qr.getModuleCount();
-          const size = q.size && q.size > 0 ? q.size : moduleCount * dotSize;
-          updateBounds(el, size, size);
-          break;
-        }
-        case 'text': {
-          const t = el as any;
-          const approxWidth = t.content ? t.content.length * (t.fontSize || 16) * 0.6 : 0;
-          const approxHeight = t.fontSize || 16;
-          updateBounds(el, approxWidth, approxHeight);
-          break;
-        }
-        default:
-          break;
       }
     }
 
-    // 禁用全局居中逻辑，严格按照 ZPL 指令的位置渲染
-    // ZPL 指令中已经明确指定了每个元素的位置（^FO），不应该进行额外的居中调整
-    // 如果需要预览时居中显示，可以通过 CSS 或其他方式处理，而不是修改元素的实际位置
+    // 如果没找到边框线，使用 ^PW 宽度；否则使用实际边界
+    const hasValidBounds = Number.isFinite(minX) && maxX > 0;
+    
+    // 计算水平居中偏移量
     let offsetX = 0;
-    let offsetY = 0;
-    // 注释掉全局居中逻辑，确保所有元素严格按照 ZPL 指令中的位置渲染
-    // if (minX !== Number.POSITIVE_INFINITY && minY !== Number.POSITIVE_INFINITY) {
-    //   const contentWidth = Math.max(maxX - minX, 0);
-    //   const contentHeight = Math.max(maxY - minY, 0);
-    //   // 只有当内容尺寸没有超过标签尺寸太多时才做居中，避免估算过大把内容整体移出画布
-    //   if (contentWidth > 0 && contentHeight > 0 && contentWidth <= widthInDots * 1.2 && contentHeight <= heightInDots * 1.2) {
-    //     offsetX = (widthInDots - contentWidth) / 2 - minX;
-    //     offsetY = (heightInDots - contentHeight) / 2 - minY;
-    //   }
-    // }
+    const offsetY = 0;
+    
+    if (hasValidBounds) {
+      // 使用实际边界计算：内容区域从 minX 到 maxX
+      const actualContentWidth = maxX - minX;
+      if (actualContentWidth > 0 && widthInDots > actualContentWidth) {
+        // 将内容区域居中：新的 minX 应该是 (widthInDots - actualContentWidth) / 2
+        // offsetX = 新minX - 原minX
+        offsetX = (widthInDots - actualContentWidth) / 2 - minX;
+      }
+    } else if (pwWidth > 0 && widthInDots > pwWidth) {
+      // 回退到使用 ^PW 宽度
+      offsetX = (widthInDots - pwWidth) / 2;
+    }
 
     renderZplToCanvas(ctx, elements, {
       scale: 1,
