@@ -111,15 +111,7 @@ export function renderZplToCanvas(
         ctx.save();
         ctx.fillStyle = '#000000';
         const barHeight = b.height || 80;
-        const baseModule = b.moduleWidth || 2;
-        // 估算总位数，控制条码不超过预览区域宽度
-        const estimatedBitsPerChar = 8; // 粗略估计
-        const estimatedTotalBits = estimatedBitsPerChar * b.content.length;
-        const maxWidth = 560; // 给左右留一点边距，略小于 ^PW596
-        let module = baseModule;
-        if (estimatedTotalBits * module > maxWidth) {
-          module = Math.max(1, Math.floor(maxWidth / estimatedTotalBits));
-        }
+        const module = b.moduleWidth || 2; // 直接使用设置的模块宽度，不进行限制
         let x = b.x;
         for (let i = 0; i < b.content.length; i++) {
           const code = b.content.charCodeAt(i);
