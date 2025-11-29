@@ -53,7 +53,6 @@ export function parseZpl(zpl: string): ZplElement[] {
   let pendingTextContent: string | null = null;
   let pendingBarcodeType: 'BC' | null = null;
   let pendingQrcode = false;
-  let pendingImage: { header: string; data: string } | null = null;
 
   for (const token of tokens) {
     const cmd = token.slice(1, 3);
@@ -177,7 +176,6 @@ export function parseZpl(zpl: string): ZplElement[] {
         // For now we approximate the image size based on header, and don't fully decode bits.
         const [header, ...dataParts] = rest.split(',');
         const headerParts = [header, ...dataParts.slice(0, 3)];
-        const data = dataParts.slice(3).join(',');
         const totalBytes = parseInt(headerParts[0] || '0', 10);
         const bytesPerRow = parseInt(headerParts[2] || headerParts[1] || '0', 10);
         const width = bytesPerRow > 0 ? bytesPerRow * 8 : 80;
@@ -192,7 +190,6 @@ export function parseZpl(zpl: string): ZplElement[] {
           data: new Uint8ClampedArray(),
         };
         elements.push(img);
-        pendingImage = { header: headerParts.join(','), data };
         break;
       }
       case 'FD': {
