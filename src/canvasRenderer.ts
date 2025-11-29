@@ -13,6 +13,8 @@ export interface RenderOptions {
   backgroundColor?: string;
   offsetX?: number;
   offsetY?: number;
+  logicalWidth?: number;
+  logicalHeight?: number;
 }
 
 export function renderZplToCanvas(
@@ -20,11 +22,27 @@ export function renderZplToCanvas(
   elements: ZplElement[],
   options: RenderOptions = {},
 ) {
-  const { scale = 1, backgroundColor = '#ffffff', offsetX = 0, offsetY = 0 } = options;
+  const {
+    scale = 1,
+    backgroundColor = '#ffffff',
+    offsetX = 0,
+    offsetY = 0,
+    logicalWidth,
+    logicalHeight,
+  } = options;
   const canvas = ctx.canvas;
 
   ctx.save();
-  
+
+  // 获取逻辑尺寸（以 dots 为单位）
+  const dpr = window.devicePixelRatio || 1;
+  const lw = logicalWidth ?? canvas.width / dpr;
+  const lh = logicalHeight ?? canvas.height / dpr;
+
+  // 先填充整个标签背景，再做平移，避免背景也被偏移
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, lw, lh);
+
   // 如果提供了 scale，应用它（但通常 scale 应该通过 CSS 处理，这里保留兼容性）
   if (scale !== 1) {
     ctx.scale(scale, scale);
@@ -33,15 +51,6 @@ export function renderZplToCanvas(
   if (offsetX !== 0 || offsetY !== 0) {
     ctx.translate(offsetX, offsetY);
   }
-
-  // 获取当前 transform 后的逻辑尺寸（以 dots 为单位）
-  // 注意：canvas.width 和 canvas.height 是物理像素，需要除以 dpr 得到逻辑尺寸
-  const dpr = window.devicePixelRatio || 1;
-  const logicalWidth = canvas.width / dpr;
-  const logicalHeight = canvas.height / dpr;
-  
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
   for (const el of elements) {
     switch (el.type) {

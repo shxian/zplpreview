@@ -47,6 +47,73 @@
   resize: vertical;
 }
 
+.paper-config {
+  margin-top: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.paper-config-row {
+  display: flex;
+  align-items: center;
+}
+
+.paper-config-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.paper-config-title {
+  font-weight: 500;
+}
+
+.paper-config-size {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paper-config-multiply {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.input-field,
+.input-select {
+  height: 2rem;
+  padding: 0 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 0.8rem;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-field:focus,
+.input-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.4);
+}
+
+.input-field {
+  width: 4.5rem;
+}
+
+.input-select {
+  min-width: 5.5rem;
+}
+
 .preview-section {
   display: flex;
   flex-direction: column;
