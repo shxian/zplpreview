@@ -130,8 +130,10 @@ export function parseZpl(zpl: string): ZplElement[] {
         break;
       }
       case 'BQ': {
-        // ^BQ,o,m,s  -> o: model, m: magnification (dot size), s: error correction
+        // ^BQ,model,magnification 或 ^BQ,model,errorCorrection,magnification
+        // 示例: ^BQ,2,5 表示 model=2, magnification=5
         const parts = rest.split(',');
+        // 如果只有两个参数，第二个是 magnification；如果有三个参数，第三个是 magnification
         const magnification = parseInt(parts[2] || parts[1] || '4', 10);
         if (!Number.isNaN(magnification) && magnification > 0) {
           state.currentQrMagnification = magnification;

@@ -135,10 +135,11 @@ export function renderZplToCanvas(
         qr.make();
         const moduleCount = qr.getModuleCount();
         const dotSize = q.dotSize && q.dotSize > 0 ? q.dotSize : 4;
-        const previewScale = 0.85; // 适当缩小二维码，留出间距
+        // 严格按照 ZPL 指令：二维码大小 = 模块数 × magnification (dotSize)
         const baseSize = moduleCount * dotSize;
-        const size = (q.size && q.size > 0 ? q.size : baseSize) * previewScale;
+        const size = q.size && q.size > 0 ? q.size : baseSize;
         const cellSize = size / moduleCount;
+        // 严格按照 ^FO 设置的坐标作为左上角位置
         ctx.fillStyle = '#000000';
         ctx.fillRect(q.x, q.y, size, size);
         ctx.fillStyle = '#ffffff';

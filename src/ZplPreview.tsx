@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { parseZpl, parseZplDimensions } from './zplParser';
 import { renderZplToCanvas } from './canvasRenderer';
 import type { ZplElement } from './zplTypes';
+import QRCodeGenerator from 'qrcode-generator';
 
 export type DimensionUnit = 'mm' | 'cm' | 'inches' | 'dots';
 
@@ -135,7 +136,14 @@ export function ZplPreview({
         case 'qrcode': {
           const q = el as any;
           const dotSize = q.dotSize && q.dotSize > 0 ? q.dotSize : 4;
-          const size = (q.size && q.size > 0 ? q.size : 21 * dotSize) * 0.85;
+          // 严格按照 ZPL 指令计算二维码大小，使用真实的模块数
+          // 二维码大小 = 模块数 × magnification (dotSize)
+          // 生成二维码对象以获取真实的模块数，确保边界计算准确
+          const qr = QRCodeGenerator(0, 'L');
+          qr.addData(q.content);
+          qr.make();
+          const moduleCount = qr.getModuleCount();
+          const size = q.size && q.size > 0 ? q.size : moduleCount * dotSize;
           updateBounds(el, size, size);
           break;
         }
@@ -151,18 +159,21 @@ export function ZplPreview({
       }
     }
 
+    // 禁用全局居中逻辑，严格按照 ZPL 指令的位置渲染
+    // ZPL 指令中已经明确指定了每个元素的位置（^FO），不应该进行额外的居中调整
+    // 如果需要预览时居中显示，可以通过 CSS 或其他方式处理，而不是修改元素的实际位置
     let offsetX = 0;
     let offsetY = 0;
-    if (minX !== Number.POSITIVE_INFINITY && minY !== Number.POSITIVE_INFINITY) {
-      const contentWidth = Math.max(maxX - minX, 0);
-      const contentHeight = Math.max(maxY - minY, 0);
-
-      // 只有当内容尺寸没有超过标签尺寸太多时才做居中，避免估算过大把内容整体移出画布
-      if (contentWidth > 0 && contentHeight > 0 && contentWidth <= widthInDots * 1.2 && contentHeight <= heightInDots * 1.2) {
-        offsetX = (widthInDots - contentWidth) / 2 - minX;
-        offsetY = (heightInDots - contentHeight) / 2 - minY;
-      }
-    }
+    // 注释掉全局居中逻辑，确保所有元素严格按照 ZPL 指令中的位置渲染
+    // if (minX !== Number.POSITIVE_INFINITY && minY !== Number.POSITIVE_INFINITY) {
+    //   const contentWidth = Math.max(maxX - minX, 0);
+    //   const contentHeight = Math.max(maxY - minY, 0);
+    //   // 只有当内容尺寸没有超过标签尺寸太多时才做居中，避免估算过大把内容整体移出画布
+    //   if (contentWidth > 0 && contentHeight > 0 && contentWidth <= widthInDots * 1.2 && contentHeight <= heightInDots * 1.2) {
+    //     offsetX = (widthInDots - contentWidth) / 2 - minX;
+    //     offsetY = (heightInDots - contentHeight) / 2 - minY;
+    //   }
+    // }
 
     renderZplToCanvas(ctx, elements, {
       scale: 1,
