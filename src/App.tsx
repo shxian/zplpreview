@@ -218,7 +218,9 @@ function App() {
         </section>
 
         <section className="preview-section">
-          <h2>预览</h2>
+          <div className="preview-section-header">
+            <h2>预览</h2>
+          </div>
           <ZplPreview
             zpl={preview.zpl}
             width={width}
