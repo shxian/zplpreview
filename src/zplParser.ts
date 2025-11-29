@@ -126,6 +126,19 @@ export function parseZpl(zpl: string): ZplElement[] {
         break;
       }
       case 'BC': {
+        // ^BCo,h,f,g,e,m
+        // o=orientation, h=height, f=print interpretation line, etc.
+        const parts = rest.split(',');
+        const orientation = (parts[0] || 'N')[0] as ParserState['currentRotation'];
+        const height = parseInt(parts[1] || '0', 10);
+        
+        if (orientation) {
+          state.currentRotation = orientation;
+        }
+        if (!Number.isNaN(height) && height > 0) {
+          state.currentBarcodeHeight = height;
+        }
+        
         pendingBarcodeType = 'BC';
         break;
       }
