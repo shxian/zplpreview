@@ -199,13 +199,32 @@ export function parseZpl(zpl: string): ZplElement[] {
             };
             elements.push(barcode);
           } else if (pendingQrcode) {
+            // 解析 QR Code 数据：去除模式指示符，提取实际数据
+            // 格式可能是: D03040C,LA,<data> 或 A<data> 或 M<params><data>
+            let qrContent = pendingTextContent;
+            
+            // 检查是否有常见的模式指示符格式
+            // 格式1: D03040C,LA,... 或 D03040C,...
+            const modeMatch = qrContent.match(/^[A-Z]\d+[A-Z]*,(?:[A-Z]+,)?(.+)$/);
+            if (modeMatch) {
+              qrContent = modeMatch[1];
+            }
+            // 格式2: 如果以 A 或 M 开头但后面直接是数据
+            else if (qrContent.startsWith('A') || qrContent.startsWith('M')) {
+              // 跳过第一个字符（mode indicator）
+              const firstComma = qrContent.indexOf(',');
+              if (firstComma > 0) {
+                qrContent = qrContent.slice(firstComma + 1);
+              }
+            }
+            
             const qr: QrcodeElement = {
               type: 'qrcode',
               x: state.currentX,
               y: state.currentY,
               size: 0,
               dotSize: state.currentQrMagnification,
-              content: pendingTextContent,
+              content: qrContent,
             };
             elements.push(qr);
           } else {
