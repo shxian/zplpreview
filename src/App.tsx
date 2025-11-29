@@ -53,6 +53,14 @@ const SAMPLE_ZPL = `^XA
 
 type DensityDpi = 203 | 300;
 
+type PreviewPayload = {
+  zpl: string;
+  density: DensityDpi;
+  unit: DimensionUnit;
+  width?: number;
+  height?: number;
+};
+
 function dotsToUnit(dots: number, unit: DimensionUnit, dpi: DensityDpi): number {
   const dotsPerMm = dpi / 25.4;
   const dotsPerCm = dpi / 2.54;
@@ -93,6 +101,13 @@ function App() {
   const [unit, setUnit] = useState<DimensionUnit>('mm');
   const [width, setWidth] = useState<number | undefined>(76);
   const [height, setHeight] = useState<number | undefined>(130);
+  const [preview, setPreview] = useState<PreviewPayload>({
+    zpl: SAMPLE_ZPL,
+    density: 203,
+    unit: 'mm',
+    width: 76,
+    height: 130,
+  });
 
   // 当 ZPL 改变时，尝试从 ZPL 中提取尺寸，并转换为当前单位
   const handleZplChange = (newZpl: string) => {
@@ -132,6 +147,16 @@ function App() {
     setDensity(nextDensity);
   };
 
+  const handleRenderClick = () => {
+    setPreview({
+      zpl,
+      density,
+      unit,
+      width,
+      height,
+    });
+  };
+
   return (
     <div className="app-root">
       <header className="app-header">
@@ -139,7 +164,12 @@ function App() {
       </header>
       <main className="app-main">
         <section className="editor-section">
-          <h2>ZPL 指令</h2>
+          <div className="editor-section-header">
+            <h2>ZPL 指令</h2>
+            <button type="button" className="render-button" onClick={handleRenderClick}>
+              渲染
+            </button>
+          </div>
           <textarea
             value={zpl}
             onChange={(e) => handleZplChange(e.target.value)}
@@ -204,11 +234,11 @@ function App() {
         <section className="preview-section">
           <h2>预览</h2>
           <ZplPreview
-            zpl={zpl}
-            width={width}
-            height={height}
-            unit={unit}
-            dpi={density}
+            zpl={preview.zpl}
+            width={preview.width}
+            height={preview.height}
+            unit={preview.unit}
+            dpi={preview.density}
           />
         </section>
       </main>
